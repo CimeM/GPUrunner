@@ -1,0 +1,89 @@
+services:
+  runner1:
+    profiles: ["runners"]
+    image: runner:latest
+    build:
+      context: runnner/.
+      dockerfile: ./runnner/Dockerfile
+      args:
+        - RUNNER_VERSION=${RUNNER_VERSION}
+    deploy:
+      replicas: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - GH_OWNER=${GH_OWNER1}
+      - GH_TOKEN=${GH_TOKEN1}
+      - GH_REPOSITORY=${GH_REPOSITORY11} 
+    command: ./start.sh
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    volumes:
+      - ./monitoring/loki/config.yaml:/etc/loki/loki-config.yaml
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/loki-config.yaml
+    profiles: ["monitoring"]
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus/config.yaml:/etc/prometheus/prometheus.yaml
+      - /etc/rancher/k3s/k3s.yaml:/etc/prometheus/kubeconfig
+    ports:
+      - "9090:9090"
+    command: --config.file=/etc/prometheus/prometheus.yaml
+    profiles: ["monitoring"]
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    volumes:
+      - ./monitoring/grafana/config.ini:/etc/grafana/grafana.ini
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3000:3000"
+    depends_on:
+      - loki
+      - prometheus
+    profiles: ["monitoring"]
+  
+  cadvisor:
+    container_name: cadvisor
+    image: gcr.io/cadvisor/cadvisor:v0.51.0
+    command:
+    - '-port=9092'
+    ports:
+      - "9092:9092"
+    volumes: 
+      - "/:/rootfs"
+      - "/var/run:/var/run"
+      - "/sys:/sys"
+      - "/var/lib/docker/:/var/lib/docker"
+      - "/dev/disk/:/dev/disk"
+    privileged: true
+    devices: 
+      - "/dev/kmsg"
+    profiles: ["monitoring"]
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    profiles: ["monitoring"]
+    ports:
+      - "9100:9100"
+volumes:
+  loki_data:
+  prometheus_data:
+  grafana_data:

@@ -1,0 +1,13 @@
+[Unit]
+Description=Github runner Docker Compose Profiles Service
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/runner/github-runner-start.sh
+ExecStop=/usr/local/bin/runner/github-runner-stop.sh
+
+[Install]
+WantedBy=multi-user.target
