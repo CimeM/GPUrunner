@@ -3,8 +3,8 @@ services:
     profiles: ["runners"]
     image: runner:latest
     build:
-      context: runnner/.
-      dockerfile: ./runnner/Dockerfile
+      context: ./runner
+      dockerfile: ./Dockerfile
       args:
         - RUNNER_VERSION=${RUNNER_VERSION}
     deploy:
@@ -68,6 +68,23 @@ services:
       - "/dev/kmsg"
     profiles: ["monitoring"]
 
+  mitemperature2:
+    profiles: ["monitoring"]
+    image: mitemperature2localimage
+    container_name: mitemperature2
+    ports:
+      - "8080:8080"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
+    environment:
+      - COUNT=1
+      - DEVICE_MAC=A4:C1:38:5D:FE:39
+      - DEVICE_NAME=a4c1385dfe39
+      - UNREACHABLE_COUNT=10
+      - HTTP_PORT=8080
+      - SKIP_IDENTICAL=50
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node-exporter
